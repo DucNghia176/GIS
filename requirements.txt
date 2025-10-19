@@ -1,0 +1,8 @@
+streamlit
+streamlit-folium
+geopandas
+osmnx
+folium
+shapely
+streamlit-js-eval
+matplotlib

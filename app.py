@@ -50,49 +50,87 @@ for _, row in health_facilities.iterrows():
         popup=f"{row['name']} ({row['amenity']})"
     ).add_to(m)
 
+# # ======================
+# # 3️⃣ Chọn vị trí người dùng
+# # ======================
+
+# # 🔹 Thêm đoạn JavaScript lấy GPS (bổ sung mới)
+# st.subheader("📍 Chọn vị trí của bạn")
+
+# components.html("""
+# <script>
+# navigator.geolocation.getCurrentPosition(
+#     (pos) => {
+#         const coords = pos.coords;
+#         const lat = coords.latitude;
+#         const lon = coords.longitude;
+#         // Gửi kết quả lên Streamlit qua postMessage
+#         window.parent.postMessage({lat: lat, lon: lon}, "*");
+#     },
+#     (err) => {
+#         window.parent.postMessage({error: err.message}, "*");
+#     }
+# );
+# </script>
+# """, height=0)
+
+# clicked_coords = None
+
+# location = get_geolocation()
+
+# if location:
+#     lat = location['coords']['latitude']
+#     lon = location['coords']['longitude']
+#     clicked_coords = (lat, lon)
+#     st.success(f"Vị trí GPS: ({lat:.5f}, {lon:.5f})")
+# else:
+#     st.info("Chưa có vị trí GPS — vui lòng cấp quyền hoặc chọn trên bản đồ.")
+
+# if not clicked_coords:
+#     st.write("👉 Hoặc click trực tiếp trên bản đồ bên dưới:")
+#     st_map = st_folium(m, width=900, height=600)
+#     if st_map and st_map.get("last_clicked"):
+#         lat = st_map["last_clicked"]["lat"]
+#         lon = st_map["last_clicked"]["lng"]
+#         clicked_coords = (lat, lon)
+
 # ======================
 # 3️⃣ Chọn vị trí người dùng
 # ======================
-
-# 🔹 Thêm đoạn JavaScript lấy GPS (bổ sung mới)
 st.subheader("📍 Chọn vị trí của bạn")
 
-components.html("""
-<script>
-navigator.geolocation.getCurrentPosition(
-    (pos) => {
-        const coords = pos.coords;
-        const lat = coords.latitude;
-        const lon = coords.longitude;
-        // Gửi kết quả lên Streamlit qua postMessage
-        window.parent.postMessage({lat: lat, lon: lon}, "*");
-    },
-    (err) => {
-        window.parent.postMessage({error: err.message}, "*");
-    }
-);
-</script>
-""", height=0)
+# Dùng session_state để lưu toạ độ tránh bị reset
+if "clicked_coords" not in st.session_state:
+    st.session_state.clicked_coords = None
 
-clicked_coords = None
+# Tuỳ chọn lấy GPS hoặc chọn trên bản đồ
+option = st.radio(
+    "Chọn cách xác định vị trí:",
+    ("Lấy từ GPS", "Chọn thủ công trên bản đồ")
+)
 
-if st.button("Dùng vị trí hiện tại (GPS trình duyệt)"):
+if option == "Lấy từ GPS":
+    st.write("👉 Nhấn nút bên dưới để lấy vị trí GPS:")
     location = get_geolocation()
-    if location:
-        st.write("Đã lấy được vị trí từ GPS.")
-        lat = location['coords']['latitude']
-        lon = location['coords']['longitude']
-        clicked_coords = (lat, lon)
-    else:
-        st.warning("Không thể lấy được vị trí GPS. Vui lòng cấp quyền hoặc thử lại.")
-
-if not clicked_coords:
-    st.write("👉 Hoặc click trực tiếp trên bản đồ bên dưới:")
+    if st.button("📡 Lấy vị trí hiện tại"):
+        if location:
+            lat = location['coords']['latitude']
+            lon = location['coords']['longitude']
+            st.session_state.clicked_coords = (lat, lon)
+            st.success(f"Vị trí GPS: ({lat:.5f}, {lon:.5f})")
+        else:
+            st.warning("Không thể lấy vị trí — vui lòng cấp quyền truy cập vị trí cho trình duyệt.")
+elif option == "Chọn thủ công trên bản đồ":
+    st.info("👉 Click trực tiếp trên bản đồ để chọn vị trí:")
     st_map = st_folium(m, width=900, height=600)
     if st_map and st_map.get("last_clicked"):
         lat = st_map["last_clicked"]["lat"]
         lon = st_map["last_clicked"]["lng"]
-        clicked_coords = (lat, lon)
+        st.session_state.clicked_coords = (lat, lon)
+        st.success(f"Vị trí thủ công: ({lat:.5f}, {lon:.5f})")
+
+# Lấy ra toạ độ hiện tại từ session_state
+clicked_coords = st.session_state.clicked_coords
 
 # ======================
 # 4️⃣ Phân tích kết quả

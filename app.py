@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 from streamlit_folium import st_folium
 import geopandas as gpd
 import osmnx as ox
@@ -52,7 +53,26 @@ for _, row in health_facilities.iterrows():
 # ======================
 # 3️⃣ Chọn vị trí người dùng
 # ======================
+
+# 🔹 Thêm đoạn JavaScript lấy GPS (bổ sung mới)
 st.subheader("📍 Chọn vị trí của bạn")
+
+components.html("""
+<script>
+navigator.geolocation.getCurrentPosition(
+    (pos) => {
+        const coords = pos.coords;
+        const lat = coords.latitude;
+        const lon = coords.longitude;
+        // Gửi kết quả lên Streamlit qua postMessage
+        window.parent.postMessage({lat: lat, lon: lon}, "*");
+    },
+    (err) => {
+        window.parent.postMessage({error: err.message}, "*");
+    }
+);
+</script>
+""", height=0)
 
 clicked_coords = None
 

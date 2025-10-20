@@ -14,20 +14,48 @@ st.title("🗺️ Phân tích tiếp cận cơ sở y tế ở Hà Nội")
 # ======================
 # 1️⃣ Tải dữ liệu
 # ======================
+# @st.cache_data
+# def load_data():
+#     hanoi_gdf = ox.geocode_to_gdf("Hanoi, Vietnam")
+
+#     # Lấy dữ liệu cơ sở y tế
+#     tags = {"amenity": ["hospital", "clinic", "doctors"]}
+#     health_facilities_gdf = ox.features_from_place("Hanoi, Vietnam", tags)
+
+#     # Xử lý dữ liệu hình học
+#     health_facilities_gdf = health_facilities_gdf.to_crs(epsg=3405)
+#     health_facilities_gdf["geometry"] = health_facilities_gdf["geometry"].centroid
+#     health_facilities_gdf = health_facilities_gdf.to_crs(epsg=4326)
+#     health_facilities_gdf['name'] = health_facilities_gdf['name'].fillna("Không rõ")
+#     health_facilities_gdf['amenity'] = health_facilities_gdf['amenity'].fillna("Không rõ")
+
+#     return hanoi_gdf, health_facilities_gdf
+
 @st.cache_data
 def load_data():
-    hanoi_gdf = ox.geocode_to_gdf("Hanoi, Vietnam")
+    import os
 
-    # Lấy dữ liệu cơ sở y tế
-    tags = {"amenity": ["hospital", "clinic", "doctors"]}
-    health_facilities_gdf = ox.features_from_place("Hanoi, Vietnam", tags)
+    # Nếu đã có file lưu sẵn, chỉ cần đọc lại
+    if os.path.exists("hanoi.geojson") and os.path.exists("health_facilities.geojson"):
+        hanoi_gdf = gpd.read_file("hanoi.geojson")
+        health_facilities_gdf = gpd.read_file("health_facilities.geojson")
+    else:
+        # 👉 Chỉ chạy khi ở local, không deploy
+        hanoi_gdf = ox.geocode_to_gdf("Hanoi, Vietnam")
 
-    # Xử lý dữ liệu hình học
-    health_facilities_gdf = health_facilities_gdf.to_crs(epsg=3405)
-    health_facilities_gdf["geometry"] = health_facilities_gdf["geometry"].centroid
-    health_facilities_gdf = health_facilities_gdf.to_crs(epsg=4326)
-    health_facilities_gdf['name'] = health_facilities_gdf['name'].fillna("Không rõ")
-    health_facilities_gdf['amenity'] = health_facilities_gdf['amenity'].fillna("Không rõ")
+        tags = {"amenity": ["hospital", "clinic", "doctors"]}
+        health_facilities_gdf = ox.features_from_place("Hanoi, Vietnam", tags)
+
+        # Xử lý dữ liệu hình học
+        health_facilities_gdf = health_facilities_gdf.to_crs(epsg=3405)
+        health_facilities_gdf["geometry"] = health_facilities_gdf["geometry"].centroid
+        health_facilities_gdf = health_facilities_gdf.to_crs(epsg=4326)
+        health_facilities_gdf['name'] = health_facilities_gdf['name'].fillna("Không rõ")
+        health_facilities_gdf['amenity'] = health_facilities_gdf['amenity'].fillna("Không rõ")
+
+        # Lưu lại cho lần sau (Streamlit Cloud chỉ đọc được, nên bạn tạo file này local trước)
+        hanoi_gdf.to_file("hanoi.geojson", driver="GeoJSON")
+        health_facilities_gdf.to_file("health_facilities.geojson", driver="GeoJSON")
 
     return hanoi_gdf, health_facilities_gdf
 

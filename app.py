@@ -11,36 +11,14 @@ import matplotlib.pyplot as plt
 st.set_page_config(page_title="Phân tích tiếp cận y tế Hà Nội", layout="wide")
 st.title("🗺️ Phân tích tiếp cận cơ sở y tế ở Hà Nội")
 
-# ======================
-# 1️⃣ Tải dữ liệu
-# ======================
-# @st.cache_data
-# def load_data():
-#     hanoi_gdf = ox.geocode_to_gdf("Hanoi, Vietnam")
-
-#     # Lấy dữ liệu cơ sở y tế
-#     tags = {"amenity": ["hospital", "clinic", "doctors"]}
-#     health_facilities_gdf = ox.features_from_place("Hanoi, Vietnam", tags)
-
-#     # Xử lý dữ liệu hình học
-#     health_facilities_gdf = health_facilities_gdf.to_crs(epsg=3405)
-#     health_facilities_gdf["geometry"] = health_facilities_gdf["geometry"].centroid
-#     health_facilities_gdf = health_facilities_gdf.to_crs(epsg=4326)
-#     health_facilities_gdf['name'] = health_facilities_gdf['name'].fillna("Không rõ")
-#     health_facilities_gdf['amenity'] = health_facilities_gdf['amenity'].fillna("Không rõ")
-
-#     return hanoi_gdf, health_facilities_gdf
-
 @st.cache_data
 def load_data():
     import os
 
-    # Nếu đã có file lưu sẵn, chỉ cần đọc lại
     if os.path.exists("hanoi.geojson") and os.path.exists("health_facilities.geojson"):
         hanoi_gdf = gpd.read_file("hanoi.geojson")
         health_facilities_gdf = gpd.read_file("health_facilities.geojson")
     else:
-        # 👉 Chỉ chạy khi ở local, không deploy
         hanoi_gdf = ox.geocode_to_gdf("Hanoi, Vietnam")
 
         tags = {"amenity": ["hospital", "clinic", "doctors"]}
@@ -59,11 +37,11 @@ def load_data():
 
     return hanoi_gdf, health_facilities_gdf
 
-with st.spinner("Đang tải dữ liệu địa lý (lần đầu có thể mất vài phút)..."):
+with st.spinner("Đang tải dữ liệu địa lý ..."):
     hanoi, health_facilities = load_data()
 
 # ======================
-# 2️⃣ Hiển thị bản đồ cơ sở y tế
+# 2️ Hiển thị bản đồ cơ sở y tế
 # ======================
 m = folium.Map(location=[21.0285, 105.8542], zoom_start=11, tiles="CartoDB positron")
 folium.GeoJson(hanoi.geometry.iloc[0], name="Hà Nội").add_to(m)
@@ -78,52 +56,8 @@ for _, row in health_facilities.iterrows():
         popup=f"{row['name']} ({row['amenity']})"
     ).add_to(m)
 
-# # ======================
-# # 3️⃣ Chọn vị trí người dùng
-# # ======================
-
-# # 🔹 Thêm đoạn JavaScript lấy GPS (bổ sung mới)
-# st.subheader("📍 Chọn vị trí của bạn")
-
-# components.html("""
-# <script>
-# navigator.geolocation.getCurrentPosition(
-#     (pos) => {
-#         const coords = pos.coords;
-#         const lat = coords.latitude;
-#         const lon = coords.longitude;
-#         // Gửi kết quả lên Streamlit qua postMessage
-#         window.parent.postMessage({lat: lat, lon: lon}, "*");
-#     },
-#     (err) => {
-#         window.parent.postMessage({error: err.message}, "*");
-#     }
-# );
-# </script>
-# """, height=0)
-
-# clicked_coords = None
-
-# location = get_geolocation()
-
-# if location:
-#     lat = location['coords']['latitude']
-#     lon = location['coords']['longitude']
-#     clicked_coords = (lat, lon)
-#     st.success(f"Vị trí GPS: ({lat:.5f}, {lon:.5f})")
-# else:
-#     st.info("Chưa có vị trí GPS — vui lòng cấp quyền hoặc chọn trên bản đồ.")
-
-# if not clicked_coords:
-#     st.write("👉 Hoặc click trực tiếp trên bản đồ bên dưới:")
-#     st_map = st_folium(m, width=900, height=600)
-#     if st_map and st_map.get("last_clicked"):
-#         lat = st_map["last_clicked"]["lat"]
-#         lon = st_map["last_clicked"]["lng"]
-#         clicked_coords = (lat, lon)
-
 # ======================
-# 3️⃣ Chọn vị trí người dùng
+# 3️ Chọn vị trí người dùng
 # ======================
 st.subheader("📍 Chọn vị trí của bạn")
 
@@ -145,7 +79,7 @@ if option == "Lấy từ GPS":
             lat = location['coords']['latitude']
             lon = location['coords']['longitude']
             st.session_state.clicked_coords = (lat, lon)
-            st.success(f"Vị trí GPS: ({lat:.5f}, {lon:.5f})")
+            # st.success(f"Vị trí GPS: ({lat:.5f}, {lon:.5f})")
         else:
             st.warning("Không thể lấy vị trí — vui lòng cấp quyền truy cập vị trí cho trình duyệt.")
 elif option == "Chọn thủ công trên bản đồ":
@@ -164,7 +98,7 @@ if st.button("🗑️ Xoá vị trí GPS đã lưu"):
 clicked_coords = st.session_state.clicked_coords
 
 # ======================
-# 4️⃣ Phân tích kết quả
+# 4️ Phân tích kết quả
 # ======================
 if clicked_coords:
     lat, lon = clicked_coords
@@ -183,8 +117,8 @@ if clicked_coords:
     for _, row in nearest.iterrows():
         st.write(f"- **{row['name']}** — {row['distance_m']:.0f} m — ({row['amenity']})")
 
-    # 4.2. Thêm buffer (vùng ảnh hưởng 3 km)
-    buffer_radius = 3000  # 3km
+    # 4.2. Thêm buffer
+    buffer_radius = 3000
     buffer_area = clicked_point_gdf.buffer(buffer_radius)
     facilities_in_buffer = health_facilities_utm[health_facilities_utm.intersects(buffer_area.iloc[0])]
     count_in_buffer = len(facilities_in_buffer)

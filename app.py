@@ -128,7 +128,10 @@ elif option == "Chọn thủ công trên bản đồ":
         lon = st_map["last_clicked"]["lng"]
         st.session_state.clicked_coords = (lat, lon)
         st.success(f"Vị trí thủ công: ({lat:.5f}, {lon:.5f})")
-
+        
+if st.button("🗑️ Xoá vị trí GPS đã lưu"):
+    st.session_state.clicked_coords = None
+    st.info("Đã xoá vị trí, vui lòng lấy lại GPS mới.")
 # Lấy ra toạ độ hiện tại từ session_state
 clicked_coords = st.session_state.clicked_coords
 
